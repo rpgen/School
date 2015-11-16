@@ -1,0 +1,223 @@
+title Hello World Program (Hello.asm)
+
+; This program displays "Hello, world!"
+.model small
+.stack 100h
+.data
+
+msgx db 'Enter the current year: $'
+msg db 'Sum is: '
+newsum db 0,0,0,0,0
+summ db 0,0,0,0,0
+msga db 'W is: '
+neww db 0
+db '$'
+y DW 0
+w DW ?
+sum DW ?
+
+
+
+.code
+
+input proc
+	mov dx,0
+A0:	mov bx,0
+	mov ah,01h
+	int 21h
+	cmp al,0Dh
+	je A1
+	mov bl,al
+	mov ax,dx
+	mov cx,10
+	mul cx
+	sub bl,30h
+	add ax,bx
+	mov dx,ax
+	jmp A0
+	
+A1:	ret
+input endp
+
+getCH proc
+	mov ah,07h
+	int 21h
+	cmp al,0dh
+	mov bx,0
+	jne B3
+	mov bx,1
+B3:	ret
+getCH endp
+
+getDigit proc
+	call getCH
+	sub al,30h
+	ret
+getDigit endp
+
+getInt proc
+	mov dx,0
+	mov cx,10
+B1:	call getDigit
+	cmp bx,1
+	je B2
+	mov bl,al
+	mov ax,dx
+	mul cx
+	mov dx,ax
+	add dx,bx
+	jmp B1
+B2:	ret
+getInt endp
+
+
+output proc
+	mov ah,02
+A2:	mov dx,[si]
+	int 21h
+	inc si
+	loop A2
+	ret
+output endp
+
+output2 proc
+C1:	mov dx, [si]
+	mov ah, 01011110b
+	mov al, dl
+	inc si
+	inc bx
+	inc bx
+	mov es:[bx],ax
+	loop C1
+	ret
+output2 endp
+
+
+
+calcsum proc
+	dec ax
+	mov bx,36
+	add bx,ax
+
+	mov dx,0	;higher part of ax
+	mov cx,4	;divisor
+	div cx
+	add bx,ax
+
+	mov dx,0
+	mov cx,25
+	div cx
+	add bx,ax
+	
+	ret
+calcsum endp
+
+calcw proc
+	mov dx,0
+	mov cx,7
+	div cx
+	mov bx,dx
+	inc bx
+	ret
+calcw endp
+
+convertSum proc
+	add si,4
+	mov bx,0
+	mov cx, 10
+A3:	mov dx, 0
+	call numToAscii
+	mov [si],dl
+	dec si
+	inc bx
+	cmp ax,0
+	jne A3
+	ret
+convertSum endp
+
+numToAscii proc
+	div cx
+	add dx, 30h
+	ret
+numToAscii endp
+
+convertW proc
+	add bx,30h
+	ret
+convertW endp
+
+main proc
+	mov ax,@data
+	mov ds,ax
+
+	mov ax,0b800h
+	mov es,ax
+	;mov bx,1820
+	;mov si, offset msg
+	;add si,2
+	;mov cx,8
+	;call output2	
+
+
+	mov si, offset msgx
+	mov bx, 1640
+	mov cx, 24
+	call output2
+	push bx
+
+	call getInt
+	mov y,dx
+
+	mov si, offset newsum
+	mov ax, y
+	mov cx, 5
+	call convertSum
+	mov si, offset newsum
+	pop bx
+	call output2
+	
+
+	mov si, offset msg	;output "Sum is: "
+	mov bx, 1820
+	mov cx, 8
+	call output2
+	push bx
+
+	mov ax,y
+	call calcsum
+	mov sum,bx
+
+	mov ax,sum
+	call calcw
+	mov w,bx
+	
+	mov ax,sum
+	mov si, offset newsum
+	call convertSum
+
+	mov si, offset newsum	;output sum
+	add si, 5
+	sub si, bx
+	mov cx, bx
+	pop bx
+	call output2
+
+	mov si, offset msga	;output "W is: "
+	mov bx,1984
+	mov cx, 6
+	call output2
+	push bx
+	
+	mov bx,w
+	call convertW
+	mov neww,bl
+
+	mov si, offset neww	;output w
+	pop bx
+	mov cx,1
+	call output2
+
+	mov ax,4C00h
+	int 21h
+main endp
+end main
